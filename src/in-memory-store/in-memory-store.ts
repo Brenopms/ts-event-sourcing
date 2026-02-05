@@ -1,5 +1,5 @@
-import type { AnyEvent, Result, CoreError} from "../core";
-import { Ok, Err } from "../core";
+import type { AnyEvent, CoreError, Result } from "../core";
+import { Err, Ok } from "../core";
 import type { EventStore, PersistedEvent, StreamState } from "../event-store";
 
 /**
@@ -23,116 +23,116 @@ import type { EventStore, PersistedEvent, StreamState } from "../event-store";
  * - High concurrency guarantees
  */
 export class InMemoryEventStore<E extends AnyEvent> implements EventStore<E> {
-  private streams = new Map<
-    string,
-    {
-      events: PersistedEvent<E>[];
-      version: number;
-      idempotencyKeys: Set<string>;
-    }
-  >();
+	private streams = new Map<
+		string,
+		{
+			events: PersistedEvent<E>[];
+			version: number;
+			idempotencyKeys: Set<string>;
+		}
+	>();
 
-  async load(params: {
-    streamId: string;
-    toVersion?: number;
-  }): Promise<Result<StreamState<E>, CoreError>> {
-    const { streamId, toVersion } = params;
-    const stream = this.streams.get(streamId);
+	async load(params: {
+		streamId: string;
+		toVersion?: number;
+	}): Promise<Result<StreamState<E>, CoreError>> {
+		const { streamId, toVersion } = params;
+		const stream = this.streams.get(streamId);
 
-    if (!stream) {
-      return Ok({ type: "empty", lastVersion: 0, events: [] });
-    }
+		if (!stream) {
+			return Ok({ type: "empty", lastVersion: 0, events: [] });
+		}
 
-    const filteredEvents =
-      toVersion === undefined
-        ? stream.events
-        : stream.events.filter((e) => e.version <= toVersion);
+		const filteredEvents =
+			toVersion === undefined
+				? stream.events
+				: stream.events.filter((e) => e.version <= toVersion);
 
-    if (filteredEvents.length === 0) {
-      return Ok({ type: "loaded", events: [], lastVersion: 0 });
-    }
+		if (filteredEvents.length === 0) {
+			return Ok({ type: "loaded", events: [], lastVersion: 0 });
+		}
 
-    return Ok({
-      type: "loaded",
-      events: filteredEvents,
-      lastVersion: filteredEvents[filteredEvents.length - 1].version,
-    });
-  }
+		return Ok({
+			type: "loaded",
+			events: filteredEvents,
+			lastVersion: filteredEvents[filteredEvents.length - 1].version,
+		});
+	}
 
-  async append(params: {
-    streamId: string;
-    expectedVersion: number;
-    events: readonly E[];
-    idempotencyKey: string;
-  }): Promise<
-    Result<
-      {
-        events: readonly PersistedEvent<E>[];
-        lastVersion: number;
-      },
-      CoreError
-    >
-  > {
-    const { streamId, expectedVersion, events, idempotencyKey } = params;
+	async append(params: {
+		streamId: string;
+		expectedVersion: number;
+		events: readonly E[];
+		idempotencyKey: string;
+	}): Promise<
+		Result<
+			{
+				events: readonly PersistedEvent<E>[];
+				lastVersion: number;
+			},
+			CoreError
+		>
+	> {
+		const { streamId, expectedVersion, events, idempotencyKey } = params;
 
-    let stream = this.streams.get(streamId);
+		let stream = this.streams.get(streamId);
 
-    // Initialize stream if missing
-    if (!stream) {
-      if (expectedVersion !== 0) {
-        return Err({
-          type: "ConcurrencyConflict",
-          expected: expectedVersion,
-          actual: 0,
-        });
-      }
+		// Initialize stream if missing
+		if (!stream) {
+			if (expectedVersion !== 0) {
+				return Err({
+					type: "ConcurrencyConflict",
+					expected: expectedVersion,
+					actual: 0,
+				});
+			}
 
-      stream = {
-        events: [],
-        version: 0,
-        idempotencyKeys: new Set(),
-      };
+			stream = {
+				events: [],
+				version: 0,
+				idempotencyKeys: new Set(),
+			};
 
-      this.streams.set(streamId, stream);
-    }
+			this.streams.set(streamId, stream);
+		}
 
-    // Idempotency check
-    if (stream.idempotencyKeys.has(idempotencyKey)) {
-      return Err({ type: "IdempotencyViolation" });
-    }
+		// Idempotency check
+		if (stream.idempotencyKeys.has(idempotencyKey)) {
+			return Err({ type: "IdempotencyViolation" });
+		}
 
-    // Concurrency check
-    if (stream.version !== expectedVersion) {
-      return Err({
-        type: "ConcurrencyConflict",
-        expected: expectedVersion,
-        actual: stream.version,
-      });
-    }
+		// Concurrency check
+		if (stream.version !== expectedVersion) {
+			return Err({
+				type: "ConcurrencyConflict",
+				expected: expectedVersion,
+				actual: stream.version,
+			});
+		}
 
-    const persisted: PersistedEvent<E>[] = [];
+		const persisted: PersistedEvent<E>[] = [];
 
-    try {
-      for (const event of events) {
-        const nextVersion = stream.version + 1;
-        const persistedEvent = {
-          ...event,
-          version: nextVersion,
-        };
+		try {
+			for (const event of events) {
+				const nextVersion = stream.version + 1;
+				const persistedEvent = {
+					...event,
+					version: nextVersion,
+				};
 
-        stream.events.push(persistedEvent);
-        stream.version = nextVersion;
-        persisted.push(persistedEvent);
-      }
+				stream.events.push(persistedEvent);
+				stream.version = nextVersion;
+				persisted.push(persistedEvent);
+			}
 
-      stream.idempotencyKeys.add(idempotencyKey);
+			stream.idempotencyKeys.add(idempotencyKey);
 
-      return Ok({
-        events: persisted,
-        lastVersion: stream.version,
-      });
-    } catch (cause) {
-      return Err({ type: "StoreError", cause });
-    }
-  }
+			return Ok({
+				events: persisted,
+				lastVersion: stream.version,
+			});
+		} catch (cause) {
+			return Err({ type: "StoreError", cause });
+		}
+	}
 }
