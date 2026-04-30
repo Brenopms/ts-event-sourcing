@@ -2,8 +2,25 @@ import type { AggregateDefinition } from "../aggregate";
 import type { AnyEvent, CoreError, Result } from "../core";
 import type { EventStore } from "../event-store";
 import { executeCommand } from "../execution-engine";
+import { CommandHandler } from "./command-handler";
 
-import type { CommandHandler } from "./command-handler";
+export type DefinedCommand<S, C, E extends AnyEvent, Err> = {
+	execute(input: {
+		store: EventStore<E>;
+		streamId: string;
+		command: C;
+		idempotencyKey: string;
+	}): Promise<
+		Result<
+			{
+				state: S;
+				events: readonly E[];
+				lastVersion: number;
+			},
+			Err | CoreError
+		>
+	>;
+};
 
 /**
  * Defines an executable command bound to a specific aggregate.
@@ -40,7 +57,7 @@ import type { CommandHandler } from "./command-handler";
 export function defineCommand<S, C, E extends AnyEvent, Err>(params: {
 	aggregate: AggregateDefinition<S, E>;
 	handler: CommandHandler<S, C, E, Err | CoreError>;
-}) {
+}): DefinedCommand<S, C, E, Err> {
 	return {
 		execute: (exec: {
 			store: EventStore<E>;

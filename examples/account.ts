@@ -9,6 +9,7 @@ import {
 	type Projection,
 	project,
 	rebuildAggregate,
+	unwrap,
 } from "../src";
 import { createAggregate } from "../src/aggregate/create-aggregate";
 import type { CommandHandler } from "../src/command";
@@ -136,7 +137,6 @@ async function openAccount(params: {
 		store: params.store,
 		streamId: params.accountId,
 		idempotencyKey: params.idempotencyKey,
-		aggregate: accountAggregate,
 		events: [
 			{
 				type: "AccountOpened",
@@ -222,6 +222,8 @@ const loadedBeforeWithdraw = await store.load({
 	streamId: "acc-1",
 	toVersion: 2,
 });
+
+console.log(unwrap(loadedBeforeWithdraw));
 
 if (loadedBeforeWithdraw.ok && loadedBeforeWithdraw.value.type === "loaded") {
 	const stateBeforeWithdraw = rebuildAggregate({
