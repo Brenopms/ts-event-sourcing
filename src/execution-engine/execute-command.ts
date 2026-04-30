@@ -20,8 +20,8 @@ import type { EventStore } from "../event-store";
  * - Concurrency is enforced via `expectedVersion`
  *
  * ### Failure modes
- * - `STREAM_NOT_FOUND` if the stream does not exist
- * - `STORE_ERROR` if the event store fails to load or append
+ * - `StreamNotFound` if the stream does not exist
+ * - `StoreError` if the event store fails to load or append
  * - Any domain error returned by the command handler
  *
  * @typeParam State   Aggregate state type
@@ -60,7 +60,7 @@ export async function executeCommand<
 			events: readonly Event[];
 			lastVersion: number;
 		},
-		CoreError
+		CoreError | Error
 	>
 > {
 	// 1. Load stream
@@ -73,7 +73,7 @@ export async function executeCommand<
 	}
 
 	if (loaded.value.type !== "loaded") {
-		return Err({ type: "STREAM_NOT_FOUND" });
+		return Err({ type: "StreamNotFound" });
 	}
 
 	// 2. Rebuild state
@@ -89,8 +89,7 @@ export async function executeCommand<
 	});
 
 	if (!decision.ok) {
-		// biome-ignore lint/suspicious/noExplicitAny: result type is not important for executing command
-		return decision as Result<any, CoreError>;
+		return { ok: false, error: decision.error };
 	}
 
 	const events = decision.value;
@@ -105,7 +104,7 @@ export async function executeCommand<
 
 	if (!appendResult.ok) {
 		return Err({
-			type: "STORE_ERROR",
+			type: "StoreError",
 			cause: appendResult.error,
 		});
 	}

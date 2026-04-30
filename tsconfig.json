@@ -42,7 +42,7 @@
 		"build/**",
 		"node_modules/**",
 		"vitest.config.ts",
-		"tsup.config.ts",
+		"tsup.config.ts"
 	],
 	"compileOnSave": false
 }

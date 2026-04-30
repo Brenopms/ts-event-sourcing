@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { Err, Ok } from "../core";
+import { CoreError, Err, Ok } from "../core";
 import { executeCommand } from "./execute-command";
 
 const aggregate = {
@@ -54,7 +54,7 @@ describe("executeCommand function", () => {
 		});
 	});
 
-	it("returns STREAM_NOT_FOUND if the stream does not exist", async () => {
+	it("returns StreamNotFound if the stream does not exist", async () => {
 		const store = {
 			load: vi.fn().mockResolvedValue(Ok({ type: "empty" })),
 			append: vi.fn(),
@@ -72,7 +72,7 @@ describe("executeCommand function", () => {
 		if (result.ok) throw new Error("Expected error result");
 
 		expect(result.ok).toBe(false);
-		expect(result.error.type).toBe("STREAM_NOT_FOUND");
+		expect((result.error as CoreError).type).toBe("StreamNotFound");
 	});
 
 	it("returns handler error without appending events", async () => {
@@ -96,7 +96,7 @@ describe("executeCommand function", () => {
 		expect(store.append).not.toHaveBeenCalled();
 	});
 
-	it("returns STORE_ERROR if append fails", async () => {
+	it("returns StoreError if append fails", async () => {
 		const store = {
 			load: vi.fn().mockResolvedValue(loadedStream()),
 			append: vi.fn().mockResolvedValue(Err({ message: "db down" })),
@@ -116,6 +116,6 @@ describe("executeCommand function", () => {
 		if (result.ok) throw new Error("Expected error result");
 
 		expect(result.ok).toBe(false);
-		expect(result.error.type).toBe("STORE_ERROR");
+		expect((result.error as CoreError).type).toBe("StoreError");
 	});
 });

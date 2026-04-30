@@ -1,11 +1,4 @@
-import {
-	type AnyEvent,
-	type CoreError,
-	Err,
-	fold,
-	Ok,
-	type Result,
-} from "../core";
+import { type AnyEvent, type CoreError, fold, Ok, type Result } from "../core";
 import type { EventStore } from "../event-store";
 
 /**
@@ -54,8 +47,8 @@ export type Projection<S, E extends AnyEvent> = {
  * - Snapshot-based extensions
  *
  * ### Failure modes
- * - Returns `STREAM_NOT_FOUND` if the event stream does not exist
- * - Returns `STORE_ERROR` for any other event store failure
+ * - Returns `StreamNotFound` if the event stream does not exist
+ * - Returns `StoreError` for any other event store failure
  *
  * ### Design notes
  * - Projections do not enforce invariants
@@ -90,11 +83,7 @@ export async function project<S, E extends AnyEvent>(params: {
 	});
 
 	if (!loadResult.ok) {
-		if (loadResult.error.type === "STREAM_NOT_FOUND") {
-			return Err({ type: "STREAM_NOT_FOUND" });
-		}
-
-		return Err({ type: "STORE_ERROR", cause: loadResult.error });
+		return loadResult; // propagate the original CoreError as-is
 	}
 
 	const { events, lastVersion } = loadResult.value;

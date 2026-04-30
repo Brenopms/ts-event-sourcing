@@ -26,7 +26,6 @@
 		"lint": "biome check",
 		"lint:fix": "biome check --fix",
 		"test": "run-s build test:*",
-		"test:prettier": "prettier \"src/**/*.ts\" --list-different",
 		"test:unit": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"watch:build": "tsc -p tsconfig.json -w",

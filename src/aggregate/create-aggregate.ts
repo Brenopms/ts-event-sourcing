@@ -1,8 +1,6 @@
 import { type AnyEvent, type CoreError, Err, Ok, type Result } from "../core";
 import type { EventStore } from "../event-store";
 
-import type { AggregateDefinition } from "./types/aggregate-definition";
-
 /**
  * Creates a new aggregate by initializing its event stream.
  *
@@ -20,8 +18,8 @@ import type { AggregateDefinition } from "./types/aggregate-definition";
  * - The returned version equals the number of appended events
  *
  * ### Failure semantics
- * - Returns `AGGREGATE_ALREADY_EXISTS` if the stream already exists
- * - Wraps store load / append errors as `STORE_ERROR`
+ * - Returns `AggregateAlreadyExists` if the stream already exists
+ * - Wraps store load / append errors as `StoreError`
  * - Never throws
  *
  * ### Notes
@@ -39,10 +37,9 @@ import type { AggregateDefinition } from "./types/aggregate-definition";
  * @returns A Result containing the last version, or a CoreError
  */
 
-export async function createAggregate<S, E extends AnyEvent>(params: {
+export async function createAggregate<E extends AnyEvent>(params: {
 	store: EventStore<E>;
 	streamId: string;
-	aggregate: AggregateDefinition<S, E>;
 	events: readonly E[];
 	idempotencyKey: string;
 }): Promise<Result<{ lastVersion: number }, CoreError>> {
@@ -52,7 +49,7 @@ export async function createAggregate<S, E extends AnyEvent>(params: {
 
 	if (!loadResult.ok) {
 		return Err({
-			type: "STORE_ERROR",
+			type: "StoreError",
 			cause: loadResult.error,
 		});
 	}
@@ -60,7 +57,7 @@ export async function createAggregate<S, E extends AnyEvent>(params: {
 	const stream = loadResult.value;
 
 	if (stream.type === "loaded") {
-		return Err({ type: "AGGREGATE_ALREADY_EXISTS" });
+		return Err({ type: "AggregateAlreadyExists" });
 	}
 
 	const appendResult = await store.append({
@@ -72,7 +69,7 @@ export async function createAggregate<S, E extends AnyEvent>(params: {
 
 	if (!appendResult.ok) {
 		return Err({
-			type: "STORE_ERROR",
+			type: "StoreError",
 			cause: appendResult.error,
 		});
 	}

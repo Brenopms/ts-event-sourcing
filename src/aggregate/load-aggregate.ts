@@ -20,8 +20,8 @@ import { rebuildAggregate } from "./rebuild-aggregate";
  * - The returned version corresponds to the last applied event
  *
  * ### Failure semantics
- * - Returns `AGGREGATE_NOT_FOUND` if the stream is empty
- * - Wraps store errors as `STORE_ERROR`
+ * - Returns `AggregateNotFound` if the stream is empty
+ * - Wraps store errors as `StoreError`
  * - Never throws
  *
  * ### Notes
@@ -55,7 +55,7 @@ export async function loadAggregate<S, E extends AnyEvent>(params: {
 
 	if (!loadResult.ok) {
 		return Err({
-			type: "STORE_ERROR",
+			type: "StoreError",
 			cause: loadResult.error,
 		});
 	}
@@ -63,7 +63,7 @@ export async function loadAggregate<S, E extends AnyEvent>(params: {
 	const stream = loadResult.value;
 
 	if (stream.type === "empty") {
-		return Err({ type: "AGGREGATE_NOT_FOUND" });
+		return Err({ type: "AggregateNotFound" });
 	}
 
 	const state = rebuildAggregate<S, E>({

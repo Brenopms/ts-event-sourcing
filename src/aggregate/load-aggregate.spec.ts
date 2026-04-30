@@ -45,7 +45,7 @@ describe("loadAggregate", () => {
 		}
 	});
 
-	it("returns AGGREGATE_NOT_FOUND when the stream is empty", async () => {
+	it("returns AggregateNotFound when the stream is empty", async () => {
 		const store: EventStore<Event> = {
 			async load() {
 				return Ok({ type: "empty", lastVersion: 0, events: [] });
@@ -63,11 +63,11 @@ describe("loadAggregate", () => {
 
 		expect(result.ok).toBe(false);
 		if (!result.ok) {
-			expect(result.error.type).toBe("AGGREGATE_NOT_FOUND");
+			expect(result.error.type).toBe("AggregateNotFound");
 		}
 	});
 
-	it("wraps store load errors as STORE_ERROR", async () => {
+	it("wraps store load errors as StoreError", async () => {
 		const storeError = { type: "CONNECTION_FAILED" };
 
 		const store: EventStore<Event> = {
@@ -87,7 +87,7 @@ describe("loadAggregate", () => {
 
 		expect(result.ok).toBe(false);
 		if (!result.ok) {
-			expect(result.error.type).toBe("STORE_ERROR");
+			expect(result.error.type).toBe("StoreError");
 			expect((result.error as any)?.cause).toBe(storeError);
 		}
 	});

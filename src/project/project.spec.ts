@@ -76,9 +76,9 @@ describe("project", () => {
 		expect(result.value.state).toBe(10);
 	});
 
-	it("returns STREAM_NOT_FOUND when the stream does not exist", async () => {
+	it("returns StreamNotFound when the stream does not exist", async () => {
 		const store: EventStore<TestEvent> = {
-			load: async () => Err({ type: "STREAM_NOT_FOUND" }),
+			load: async () => Err({ type: "StreamNotFound" }),
 			append: async () => {
 				throw new Error("not used");
 			},
@@ -93,12 +93,12 @@ describe("project", () => {
 		if (result.ok) throw new Error("Expected error result");
 
 		expect(result.ok).toBe(false);
-		expect(result.error).toEqual({ type: "STREAM_NOT_FOUND" });
+		expect(result.error).toEqual({ type: "StreamNotFound" });
 	});
 
-	it("wraps non-stream store errors as STORE_ERROR", async () => {
+	it("wraps non-stream store errors as StoreError", async () => {
 		const store: EventStore<TestEvent> = {
-			load: async () => Err({ type: "IO_ERROR" } as any),
+			load: async () => Err({ type: "StoreError" } as any),
 			append: async () => {
 				throw new Error("not used");
 			},
@@ -113,6 +113,6 @@ describe("project", () => {
 		if (result.ok) throw new Error("Expected error result");
 
 		expect(result.ok).toBe(false);
-		expect(result.error.type).toBe("STORE_ERROR");
+		expect(result.error.type).toBe("StoreError");
 	});
 });
