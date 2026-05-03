@@ -45,8 +45,10 @@ export class InMemoryEventStore<E extends AnyEvent> implements EventStore<E> {
 
 		const filteredEvents =
 			toVersion === undefined
-				? stream.events
-				: stream.events.filter((e) => e.version <= toVersion);
+				? [...stream.events]
+				: stream.events
+						.filter((e) => e.version <= toVersion)
+						.map((e) => ({ ...e }));
 
 		if (filteredEvents.length === 0) {
 			return Ok({ type: "loaded", events: [], lastVersion: 0 });
@@ -77,7 +79,6 @@ export class InMemoryEventStore<E extends AnyEvent> implements EventStore<E> {
 
 		let stream = this.streams.get(streamId);
 
-		// Initialize stream if missing
 		if (!stream) {
 			if (expectedVersion !== 0) {
 				return Err({
@@ -92,16 +93,13 @@ export class InMemoryEventStore<E extends AnyEvent> implements EventStore<E> {
 				version: 0,
 				idempotencyKeys: new Set(),
 			};
-
 			this.streams.set(streamId, stream);
 		}
 
-		// Idempotency check
 		if (stream.idempotencyKeys.has(idempotencyKey)) {
 			return Err({ type: "IdempotencyViolation" });
 		}
 
-		// Concurrency check
 		if (stream.version !== expectedVersion) {
 			return Err({
 				type: "ConcurrencyConflict",
@@ -110,29 +108,26 @@ export class InMemoryEventStore<E extends AnyEvent> implements EventStore<E> {
 			});
 		}
 
-		const persisted: PersistedEvent<E>[] = [];
+		//Create new arrays instead of mutating
+		const newEvents: PersistedEvent<E>[] = [];
+		let currentVersion = stream.version;
 
-		try {
-			for (const event of events) {
-				const nextVersion = stream.version + 1;
-				const persistedEvent = {
-					...event,
-					version: nextVersion,
-				};
-
-				stream.events.push(persistedEvent);
-				stream.version = nextVersion;
-				persisted.push(persistedEvent);
-			}
-
-			stream.idempotencyKeys.add(idempotencyKey);
-
-			return Ok({
-				events: persisted,
-				lastVersion: stream.version,
-			});
-		} catch (cause) {
-			return Err({ type: "StoreError", cause });
+		for (const event of events) {
+			currentVersion++;
+			newEvents.push({ ...event, version: currentVersion });
 		}
+
+		const updatedEvents = [...stream.events, ...newEvents];
+		const updatedStream = {
+			events: updatedEvents,
+			version: currentVersion,
+			idempotencyKeys: new Set([...stream.idempotencyKeys, idempotencyKey]),
+		};
+		this.streams.set(streamId, updatedStream);
+
+		return Ok({
+			events: newEvents,
+			lastVersion: currentVersion,
+		});
 	}
 }
