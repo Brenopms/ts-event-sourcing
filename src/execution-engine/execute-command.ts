@@ -103,10 +103,7 @@ export async function executeCommand<
 	});
 
 	if (!appendResult.ok) {
-		return Err({
-			type: "StoreError",
-			cause: appendResult.error,
-		});
+		return appendResult;
 	}
 
 	// 5. Rebuild again (authoritative)
