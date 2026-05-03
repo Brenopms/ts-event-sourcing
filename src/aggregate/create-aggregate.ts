@@ -68,13 +68,10 @@ export async function createAggregate<E extends AnyEvent>(params: {
 	});
 
 	if (!appendResult.ok) {
-		return Err({
-			type: "StoreError",
-			cause: appendResult.error,
-		});
+		return appendResult;
 	}
 
 	return Ok({
-		lastVersion: events.length,
+		lastVersion: appendResult.value.lastVersion,
 	});
 }
