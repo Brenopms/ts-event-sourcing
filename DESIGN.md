@@ -127,10 +127,6 @@ Reasoning:
 Commands represent intent, not facts. They are not discriminated unions at the
 library level — command types are user-defined and passed directly to handlers.
 
-```ts
-export type AnyCommand = {
-  type: string
-}
 ```
 
 Reasoning:

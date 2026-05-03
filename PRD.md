@@ -99,7 +99,7 @@ Developers need a **reliable, type‑safe foundation** that separates pure domai
 
 - `Result<T, E>`, `Ok()`, `Err()`
 - `mapOk`, `andThen`, `andThenSync`, `unwrap`
-- `AnyEvent`, `AnyCommand`
+- `AnyEvent`
 - `CoreError` (discriminated union)
 
 ### Aggregate

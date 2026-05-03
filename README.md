@@ -916,6 +916,38 @@ const shipOrderHandler: CommandHandler<OrderState, ShipOrderCommand, OrderEvent,
 
 Adding a new status value to the union without updating this matcher is a compile error. This pattern is especially valuable when multiple commands operate on the same state machine.
 
+**Two caveats to be aware of:**
+ 
+Using a `_` default case causes the return type to become `unknown` — TypeScript can't independently resolve the specific-case and default-case types at the call site. If you need a typed result, use an exhaustive matcher instead. If you do need `_`, cast the return value:
+ 
+```ts
+// ❌ Result is `unknown` when _ is present
+const result = match(state, "status", {
+  Pending: () => Ok(...),
+  _: () => Err({ type: "InvalidStatus" as const }),
+})
+ 
+// ✅ Cast restores full type safety
+const result = match(state, "status", {
+  Pending: () => Ok(...),
+  _: () => Err({ type: "InvalidStatus" as const }),
+}) as Result<readonly OrderEvent[], OrderError>
+```
+ 
+When passing a plain interface variable (rather than a discriminated union parameter), TypeScript may infer `T` as the concrete member type rather than the full union, causing the other case keys to appear invalid. Fix it with an `as` cast on the argument:
+ 
+```ts
+const s: Shape = { kind: "circle", radius: 5 }
+ 
+// ❌ TypeScript infers T as the concrete circle type — "rect" key rejected
+match(s, "kind", { circle: ..., rect: ... })
+ 
+// ✅ Cast forces T to be the full union
+match(s as Shape, "kind", { circle: ..., rect: ... })
+```
+ 
+This second caveat rarely comes up inside command handlers, where `state` is already typed as the full union from the function signature.
+
 ---
 
 ### ✅ Name events as past-tense facts, not commands or CRUD
