@@ -67,31 +67,6 @@ describe("loadAggregate", () => {
 		}
 	});
 
-	it("wraps store load errors as StoreError", async () => {
-		const storeError = { type: "CONNECTION_FAILED" };
-
-		const store: EventStore<Event> = {
-			async load() {
-				return Err(storeError as any);
-			},
-			async append() {
-				throw new Error("not used");
-			},
-		};
-
-		const result = await loadAggregate({
-			store,
-			streamId: "stream-1",
-			aggregate,
-		});
-
-		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.error.type).toBe("StoreError");
-			expect((result.error as any)?.cause).toBe(storeError);
-		}
-	});
-
 	it("does not attempt to rebuild when load fails", async () => {
 		let rebuildCalled = false;
 

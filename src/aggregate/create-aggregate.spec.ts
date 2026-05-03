@@ -86,32 +86,6 @@ describe("createAggregate", () => {
 		}
 	});
 
-	it("wraps store append errors as StoreError", async () => {
-		const storeError = { type: "APPEND_FAILED" };
-
-		const store: EventStore<Event> = {
-			async load() {
-				return Ok({ type: "empty", lastVersion: 0, events: [] });
-			},
-			async append() {
-				return Err(storeError as any);
-			},
-		};
-
-		const result = await createAggregate({
-			store,
-			streamId: "stream-1",
-			events: [{ type: "created", value: 10 }],
-			idempotencyKey: "create-1",
-		});
-
-		expect(result.ok).toBe(false);
-		if (!result.ok) {
-			expect(result.error.type).toBe("StoreError");
-			expect((result.error as any).cause).toBe(storeError);
-		}
-	});
-
 	it("does not attempt to append when the stream already exists", async () => {
 		let appendCalled = false;
 

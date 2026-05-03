@@ -54,10 +54,7 @@ export async function loadAggregate<S, E extends AnyEvent>(params: {
 	const loadResult = await store.load({ streamId });
 
 	if (!loadResult.ok) {
-		return Err({
-			type: "StoreError",
-			cause: loadResult.error,
-		});
+		return loadResult;
 	}
 
 	const stream = loadResult.value;

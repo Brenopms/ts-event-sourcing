@@ -99,7 +99,9 @@ describe("executeCommand function", () => {
 	it("returns StoreError if append fails", async () => {
 		const store = {
 			load: vi.fn().mockResolvedValue(loadedStream()),
-			append: vi.fn().mockResolvedValue(Err({ message: "db down" })),
+			append: vi
+				.fn()
+				.mockResolvedValue(Err({ type: "StoreError", message: "db down" })),
 		};
 
 		const handler = vi.fn().mockReturnValue(Ok([{ type: "INC" }]));

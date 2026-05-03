@@ -108,10 +108,12 @@ type IssuePrescriptionCommand = {
 type StartEncounterCommand = {
 	encounterId: string;
 	reason: string;
+	startAt: Date;
 };
 
 type CloseEncounterCommand = {
 	notes: string;
+	closedAt: Date;
 };
 
 // Domain errors
@@ -293,7 +295,7 @@ const startEncounterHandler: CommandHandler<
 			patientId: state.patientId,
 			encounterId: command.encounterId,
 			reason: command.reason,
-			startedAt: new Date(),
+			startedAt: command.startAt,
 		},
 	]);
 };
@@ -314,7 +316,7 @@ const closeEncounterHandler: CommandHandler<
 			patientId: state.patientId,
 			encounterId: state.currentEncounter.encounterId,
 			notes: command.notes,
-			closedAt: new Date(),
+			closedAt: command.closedAt,
 		},
 	]);
 };
@@ -498,7 +500,11 @@ async function main() {
 	const startEnc = await startEncounter.execute({
 		store,
 		streamId: patientId,
-		command: { encounterId: "enc-001", reason: "Cough and fever" },
+		command: {
+			encounterId: "enc-001",
+			reason: "Cough and fever",
+			startAt: new Date(),
+		},
 		idempotencyKey: "start-enc",
 	});
 	logResult("Start encounter", startEnc);
@@ -509,7 +515,11 @@ async function main() {
 	const secondEnc = await startEncounter.execute({
 		store,
 		streamId: patientId,
-		command: { encounterId: "enc-002", reason: "Routine checkup" },
+		command: {
+			encounterId: "enc-002",
+			reason: "Routine checkup",
+			startAt: new Date(),
+		},
 		idempotencyKey: "start-second",
 	});
 	logResult("Second encounter (should fail)", secondEnc);
@@ -520,7 +530,10 @@ async function main() {
 	const closeEnc = await closeEncounter.execute({
 		store,
 		streamId: patientId,
-		command: { notes: "Prescribed Ibuprofen, advised rest" },
+		command: {
+			notes: "Prescribed Ibuprofen, advised rest",
+			closedAt: new Date(),
+		},
 		idempotencyKey: "close-enc",
 	});
 	logResult("Close encounter", closeEnc);
