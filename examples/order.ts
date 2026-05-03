@@ -254,64 +254,93 @@ const cancelOrderCommand = defineCommand({
 	handler: cancelOrderHandler,
 });
 
-// ---------- 7. Projection: count of orders per status ----------
-type OrderStats = {
-	pending: number;
-	confirmed: number;
-	shipped: number;
-	delivered: number;
-	cancelled: number;
+// ---------- 7. Projection: lifecycle audit log for a single order ----------
+//
+// A projection built with project() reads one stream — so it can only answer
+// questions about that one order. Counts across all orders (e.g. "how many
+// orders are Shipped?") require consuming events from every stream, which is
+// a job for a separate subscription layer outside this library's scope.
+//
+// This projection tracks the full status history of a single order: when each
+// transition happened, any associated metadata, and a derived human-readable
+// timeline — the kind of view useful for an order detail page or support tool.
+
+type StatusTransition = {
+	status: OrderStatus;
+	at: Date;
+	detail?: string; // e.g. tracking number, cancellation reason
 };
 
-const statsProjection: Projection<OrderStats, OrderEvent> = {
+type OrderLifecycle = {
+	orderId: string;
+	customerId: string;
+	itemCount: number;
+	timeline: StatusTransition[];
+	currentStatus: OrderStatus;
+};
+
+const orderLifecycleProjection: Projection<OrderLifecycle, OrderEvent> = {
 	initialState: {
-		pending: 0,
-		confirmed: 0,
-		shipped: 0,
-		delivered: 0,
-		cancelled: 0,
+		orderId: "",
+		customerId: "",
+		itemCount: 0,
+		timeline: [],
+		currentStatus: "Pending",
 	},
-	fold: (stats, event) =>
+	fold: (state, event) =>
 		matchEvent(event, {
-			OrderPlaced: () => ({ ...stats, pending: stats.pending + 1 }),
-			PaymentConfirmed: (_e) => {
-				// Note: we need to know which order changed from pending to confirmed.
-				// For demo, we just decrement pending and increment confirmed.
-				// In real projection you'd have a map; this is simplified.
-				return {
-					...stats,
-					pending: stats.pending - 1,
-					confirmed: stats.confirmed + 1,
-				};
-			},
-			OrderShipped: () => ({
-				...stats,
-				confirmed: stats.confirmed - 1,
-				shipped: stats.shipped + 1,
+			OrderPlaced: (e) => ({
+				...state,
+				orderId: e.orderId,
+				customerId: e.customerId,
+				itemCount: e.items.reduce((sum, item) => sum + item.quantity, 0),
+				currentStatus: "Pending",
+				timeline: [{ status: "Pending", at: new Date() }],
 			}),
-			OrderDelivered: () => ({
-				...stats,
-				shipped: stats.shipped - 1,
-				delivered: stats.delivered + 1,
+			PaymentConfirmed: (e) => ({
+				...state,
+				currentStatus: "Confirmed",
+				timeline: [
+					...state.timeline,
+					{
+						status: "Confirmed",
+						at: new Date(),
+						detail: `txn: ${e.transactionId}`,
+					},
+				],
 			}),
-			OrderCancelled: () => {
-				// Cancellation can happen from Pending or Confirmed (or shipped? prevented by invariants)
-				// For simplicity, assume from Pending or Confirmed; adjust stats accordingly.
-				// We'll decrement whichever is non-zero (crude but illustrative)
-				if (stats.pending > 0)
-					return {
-						...stats,
-						pending: stats.pending - 1,
-						cancelled: stats.cancelled + 1,
-					};
-				if (stats.confirmed > 0)
-					return {
-						...stats,
-						confirmed: stats.confirmed - 1,
-						cancelled: stats.cancelled + 1,
-					};
-				return stats;
-			},
+			OrderShipped: (e) => ({
+				...state,
+				currentStatus: "Shipped",
+				timeline: [
+					...state.timeline,
+					{
+						status: "Shipped",
+						at: new Date(),
+						detail: `tracking: ${e.trackingNumber}`,
+					},
+				],
+			}),
+			OrderDelivered: (e) => ({
+				...state,
+				currentStatus: "Delivered",
+				timeline: [
+					...state.timeline,
+					{ status: "Delivered", at: e.deliveredAt },
+				],
+			}),
+			OrderCancelled: (e) => ({
+				...state,
+				currentStatus: "Cancelled",
+				timeline: [
+					...state.timeline,
+					{
+						status: "Cancelled",
+						at: new Date(),
+						detail: `reason: ${e.reason}`,
+					},
+				],
+			}),
 		}),
 };
 
@@ -417,16 +446,26 @@ async function main() {
 	logResult("Cancel after delivery", cancelLate);
 	console.log();
 
-	// 8. Project stats (read model)
-	console.log("8. Projecting order statistics...");
-	const statsResult = await project({
+	// 8. Project order lifecycle (read model)
+	console.log("8. Projecting order lifecycle...");
+	const lifecycleResult = await project({
 		store,
 		streamId: orderId,
-		projection: statsProjection,
+		projection: orderLifecycleProjection,
 	});
-	const stats = logResult("Order stats", statsResult);
-	if (stats) {
-		console.log("   → Current order status distribution:", stats.state);
+	const lifecycle = logResult("Order lifecycle", lifecycleResult);
+	if (lifecycle) {
+		console.log(
+			`   → Order ${lifecycle.state.orderId} for customer ${lifecycle.state.customerId}`,
+		);
+		console.log(`   → ${lifecycle.state.itemCount} items total`);
+		console.log("   → Status timeline:");
+		for (const transition of lifecycle.state.timeline) {
+			const detail = transition.detail ? ` (${transition.detail})` : "";
+			console.log(
+				`      ${transition.at.toISOString()} → ${transition.status}${detail}`,
+			);
+		}
 	}
 	console.log();
 
