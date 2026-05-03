@@ -4,7 +4,7 @@ import { executeCommand } from "./execute-command";
 
 const aggregate = {
 	initialState: { count: 0 },
-	reduce: (state: { count: number }, event: { type: "INC" }) => ({
+	reduce: (state: { count: number }, _event: { type: "INC" }) => ({
 		count: state.count + 1,
 	}),
 };
