@@ -121,7 +121,7 @@ Developers need a **reliable, type‑safe foundation** that separates pure domai
 
 ### Event Matching
 
-- `matchEvent`, `matchEventPartial`, `EventMatcher<E, R>`
+- `match`, `matchEvent`, `matchEventPartial`, `EventMatcher<E, R>`
 
 ### Event Store
 

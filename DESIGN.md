@@ -728,6 +728,7 @@ The full public surface of the library:
 **Event matching**
 
 * `matchEvent`, `EventMatcher`
+* `match`
 * `matchEventPartial`
 
 **Aggregate**
