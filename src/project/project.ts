@@ -1,4 +1,11 @@
-import { type AnyEvent, type CoreError, fold, Ok, type Result } from "../core";
+import {
+	type AnyEvent,
+	type CoreError,
+	Err,
+	fold,
+	Ok,
+	type Result,
+} from "../core";
 import type { EventStore } from "../event-store";
 
 /**
@@ -88,7 +95,12 @@ export async function project<S, E extends AnyEvent>(params: {
 
 	const { events, lastVersion } = loadResult.value;
 
-	const state = fold(projection.initialState, projection.fold, events);
+	let state: S;
+	try {
+		state = fold(projection.initialState, projection.fold, events);
+	} catch (e) {
+		return Err({ type: "FoldError", cause: e });
+	}
 
 	return Ok({ state, lastVersion });
 }

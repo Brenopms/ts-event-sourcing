@@ -635,6 +635,8 @@ All public functions return `Result<T, E>`. Errors fall into two categories:
 | `AggregateAlreadyExists` | Called `createAggregate` on an existing stream |
 | `ConcurrencyConflict` | Optimistic concurrency check failed (version mismatch) |
 | `IdempotencyViolation` | Same idempotency key used with different events |
+| `ReducerError` | Generic error for rebuilding aggregate failure |
+| `FolderError` | Generic projection-level failure |
 | `StoreError` | Generic store-level failure |
 
 **Domain errors** — returned by your command handlers. These are fully user-defined and typed as generic parameters. The compiler ensures you handle both technical and domain errors at every call site.

@@ -240,6 +240,8 @@ export type CoreError =
   | { type: "AggregateNotFound" }
   | { type: "AggregateAlreadyExists" }
   | { type: "StoreError"; cause: unknown }
+  | { type: "ReducerError"; cause: unknown }
+	| { type: "FoldError"; cause: unknown }
   | { type: "ConcurrencyConflict"; expected: number; actual: number }
   | { type: "IdempotencyViolation" }
 ```

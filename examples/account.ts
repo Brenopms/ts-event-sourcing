@@ -226,6 +226,7 @@ const loadedBeforeWithdraw = await store.load({
 console.log(unwrap(loadedBeforeWithdraw));
 
 if (loadedBeforeWithdraw.ok && loadedBeforeWithdraw.value.type === "loaded") {
+	// usually we dont rebuild directly the aggregate, rather use a projection
 	const stateBeforeWithdraw = rebuildAggregate({
 		aggregate: accountAggregate,
 		stream: loadedBeforeWithdraw.value,

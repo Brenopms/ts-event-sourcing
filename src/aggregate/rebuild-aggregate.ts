@@ -6,6 +6,8 @@ import type { AggregateDefinition } from ".";
 /**
  * Rebuilds the aggregate state from a loaded event stream.
  *
+ * This is intentionally a low-level function that doesn't handle errors directly.
+ *
  * This is a domain-level helper that binds together an `AggregateDefinition`
  * and a `LoadedStream` to produce the current derived state.
  *
@@ -22,8 +24,7 @@ import type { AggregateDefinition } from ".";
  * - The returned state is fully derived from the stream
  *
  * ### Failure semantics
- * - This function never fails and never throws
- * - Any stream or store errors must be handled before calling it
+ * - This function *CAN* fail and throw
  *
  * ### Why this exists
  * - Provides semantic clarity over calling `fold` directly

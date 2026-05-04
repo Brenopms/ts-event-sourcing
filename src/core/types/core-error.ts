@@ -3,5 +3,7 @@ export type CoreError =
 	| { type: "ConcurrencyConflict"; expected: number; actual: number }
 	| { type: "IdempotencyViolation" }
 	| { type: "StoreError"; cause: unknown }
+	| { type: "ReducerError"; cause: unknown }
+	| { type: "FoldError"; cause: unknown }
 	| { type: "AggregateAlreadyExists" }
 	| { type: "AggregateNotFound" };

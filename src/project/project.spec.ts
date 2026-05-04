@@ -96,7 +96,7 @@ describe("project", () => {
 		expect(result.error).toEqual({ type: "StreamNotFound" });
 	});
 
-	it("wraps non-stream store errors as StoreError", async () => {
+	it("passes through StoreError from the store", async () => {
 		const store: EventStore<TestEvent> = {
 			load: async () => Err({ type: "StoreError" } as any),
 			append: async () => {
@@ -114,5 +114,41 @@ describe("project", () => {
 
 		expect(result.ok).toBe(false);
 		expect(result.error.type).toBe("StoreError");
+	});
+
+	it("Wraps fold errors in FoldError", async () => {
+		const store: EventStore<TestEvent> = {
+			load: async () =>
+				Ok({
+					type: "loaded",
+					events: [
+						{ type: "INC", value: 5 },
+						{ type: "DEC", value: 2 },
+					],
+					lastVersion: 2,
+				}),
+			append: async () => {
+				throw new Error("not used");
+			},
+		};
+
+		const projectionError: Projection<number, TestEvent> = {
+			initialState: 0,
+			fold: (_state, _event) => {
+				throw new Error("Projection fold error");
+			},
+		};
+
+		const result = await project({
+			store,
+			streamId: "test",
+			projection: projectionError,
+		});
+
+		if (result.ok) throw new Error("Expected error result");
+
+		
+		expect(result.ok).toBe(false);
+		expect(result.error.type).toBe("FoldError");
 	});
 });

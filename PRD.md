@@ -53,7 +53,7 @@ Developers need a **reliable, type‑safe foundation** that separates pure domai
 
 - **`Result<T, E>`** type with `Ok` and `Err` constructors.
 - Combinators: **`mapOk`**, **`andThen`** (async), **`andThenSync`**, **`unwrap`** (for boundaries).
-- Core error types: `StreamNotFound`, `AggregateNotFound`, `AggregateAlreadyExists`, `StoreError`, `ConcurrencyConflict`, `IdempotencyViolation`. Domain errors are user‑defined.
+- Core error types: `StreamNotFound`, `AggregateNotFound`, `AggregateAlreadyExists`, `StoreError`, `ReducerError`, `FoldError`, `ConcurrencyConflict`, `IdempotencyViolation`. Domain errors are user‑defined.
 
 ### 4.6 Reference Implementation
 

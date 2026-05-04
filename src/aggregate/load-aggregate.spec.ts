@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Err, Ok } from "../core";
+import { Ok } from "../core";
 import type { EventStore } from "../event-store";
 import type { AggregateDefinition } from ".";
 import { loadAggregate } from "./load-aggregate";

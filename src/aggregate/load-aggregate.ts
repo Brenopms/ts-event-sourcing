@@ -63,10 +63,15 @@ export async function loadAggregate<S, E extends AnyEvent>(params: {
 		return Err({ type: "AggregateNotFound" });
 	}
 
-	const state = rebuildAggregate<S, E>({
-		aggregate,
-		stream,
-	});
+	let state: S;
+	try {
+		state = rebuildAggregate<S, E>({
+			aggregate,
+			stream,
+		});
+	} catch (e) {
+		return Err({ type: "ReducerError", cause: e });
+	}
 
 	return Ok({
 		state,

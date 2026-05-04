@@ -77,10 +77,15 @@ export async function executeCommand<
 	}
 
 	// 2. Rebuild state
-	const state = rebuildAggregate({
-		aggregate: params.aggregate,
-		stream: loaded.value,
-	});
+	let state: State;
+	try {
+		state = rebuildAggregate({
+			aggregate: params.aggregate,
+			stream: loaded.value,
+		});
+	} catch (e) {
+		return Err({ type: "ReducerError", cause: e });
+	}
 
 	// 3. Decide
 	const decision = params.handler({
@@ -107,14 +112,20 @@ export async function executeCommand<
 	}
 
 	// 5. Rebuild again (authoritative)
-	const nextState = rebuildAggregate({
-		aggregate: params.aggregate,
-		stream: {
-			...loaded.value,
-			events: [...loaded.value.events, ...events],
-			lastVersion: appendResult.value.lastVersion,
-		},
-	});
+	let nextState: State;
+
+	try {
+		nextState = rebuildAggregate({
+			aggregate: params.aggregate,
+			stream: {
+				...loaded.value,
+				events: [...loaded.value.events, ...events],
+				lastVersion: appendResult.value.lastVersion,
+			},
+		});
+	} catch (e) {
+		return Err({ type: "ReducerError", cause: e });
+	}
 
 	return Ok({
 		state: nextState,
