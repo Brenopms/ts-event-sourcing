@@ -1,4 +1,4 @@
-# Typed Event Sourcing Core
+# Typescript Event Sourcing Core
 
 A minimal, opinionated, strongly typed event-sourcing library for TypeScript.
 
@@ -1052,7 +1052,7 @@ The tutorial and examples use `InMemoryEventStore`, but a production system need
 
 The only thing standing between this library and a real database is two methods: `load` and `append`. Both return `Result` — no exceptions cross the boundary.
 
-Here's a PostgreSQL adapter as a concrete reference. It assumes an `events` table with columns `(stream_id, version, type, payload, idempotency_key)`:
+Here's a very naive PostgreSQL adapter as a concrete reference - please don't use it in production. It assumes an `events` table with columns `(stream_id, version, type, payload, idempotency_key)`:
 
 ```ts
 import {
