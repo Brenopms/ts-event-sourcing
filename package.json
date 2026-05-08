@@ -54,5 +54,20 @@
     "typedoc-plugin-mermaid": "^1.12.0",
     "typescript": "^5.8.3",
     "vitest": "^3.1.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Brenopms/ts-event-sourcing.git"
+  },
+  "homepage": "https://github.com/Brenopms/ts-event-sourcing",
+  "bugs": {
+    "url": "https://github.com/Brenopms/ts-event-sourcing/issues"
+  },
+  "keywords": [
+    "event-sourcing",
+    "typescript",
+    "ddd",
+    "cqrs",
+    "events"
+  ]
 }
