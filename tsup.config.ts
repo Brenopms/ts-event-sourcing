@@ -26,10 +26,10 @@ export default defineConfig({
 	sourcemap: true,
 
 	// Optional: Splitting for ESM
-	splitting: true,
+	splitting: false,
 
 	// Optional: Minification
-	minify: true,
+	minify: false,
 
 	// Optional: Tree-shaking
 	treeshake: true,
