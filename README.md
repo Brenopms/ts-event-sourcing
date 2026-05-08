@@ -1422,6 +1422,23 @@ These concerns belong in adapters and extensions built on top of this core. All 
 
 ---
 
+## AI usage
+
+AI tools were used during the development of this project, mostly as assistants for documentation and design discussions.
+
+They helped with:
+- Drafting and refining the PRD/design notes
+- Writing and organizing parts of the README
+- Generating and improving JSDoc comments
+- Creating and iterating on test cases
+- Reviewing architecture ideas and edge cases
+
+The library implementation itself was primarily written and designed by hand, especially the core abstractions, orchestration flow, type system decisions, and API design.
+
+I treated AI mostly as a collaborator for iteration and review, not as an autonomous code generator.
+
+---
+
 ## Design Philosophy
 
 **Functional core, imperative shell.** Domain logic — reducers and command handlers — is pure and deterministic. Side effects live in store adapters. You can test every domain decision without touching a database.
