@@ -75,7 +75,19 @@ type WithdrawMoney = {
 	amount: number;
 };
 
+type OpenAccount = {
+	ownerId: string;
+};
+
 type AccountError = { type: "INVALID_AMOUNT" } | { type: "INSUFFICIENT_FUNDS" };
+
+const openAccountHandler: CommandHandler<
+	AccountState,
+	OpenAccount,
+	AccountEvent,
+	never
+> = ({ command }) =>
+	Ok([{ type: "AccountOpened", data: { ownerId: command.ownerId } }]);
 
 const depositMoneyHandler: CommandHandler<
 	AccountState,
@@ -117,6 +129,11 @@ const withdrawMoneyHandler: CommandHandler<
 	]);
 };
 
+const openAccountCommand = defineCommand({
+	aggregate: accountAggregate,
+	handler: openAccountHandler,
+});
+
 const depositMoney = defineCommand({
 	aggregate: accountAggregate,
 	handler: depositMoneyHandler,
@@ -133,16 +150,19 @@ async function openAccount(params: {
 	ownerId: string;
 	idempotencyKey: string;
 }) {
-	return createAggregate({
+	const streamResult = await createAggregate({
 		store: params.store,
 		streamId: params.accountId,
+		events: [],
+		idempotencyKey: `${params.idempotencyKey}-stream`,
+	});
+	if (!streamResult.ok) return streamResult;
+
+	return openAccountCommand.execute({
+		store: params.store,
+		streamId: params.accountId,
+		command: { ownerId: params.ownerId },
 		idempotencyKey: params.idempotencyKey,
-		events: [
-			{
-				type: "AccountOpened",
-				data: { ownerId: params.ownerId },
-			},
-		],
 	});
 }
 

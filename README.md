@@ -2,8 +2,6 @@
 
 A minimal, opinionated, strongly typed event-sourcing library for TypeScript.
 
-> **If it compiles, it's correct.**
-
 This library provides a pure functional kernel for building event-sourced aggregates — exhaustive event matching, an explicit aggregate lifecycle, a `Result`-based error model, and zero infrastructure coupling. It is not a framework; it is a foundational primitive upon which higher-level systems (CQRS, projections, messaging, sagas) can be built.
 
 ```
@@ -111,14 +109,20 @@ const createCartHandler: CommandHandler<CartState, { cartId: string }, CartEvent
 
 const addItemHandler: CommandHandler<CartState, AddItemCommand, CartEvent, CartError> =
   ({ state, command }) => {
-    if (state.checkedOut) return Err({ type: "AlreadyCheckedOut" })
-    if (command.quantity <= 0) return Err({ type: "InvalidQuantity" })
+    if (state.checkedOut) {
+      return Err({ type: "AlreadyCheckedOut" })
+    }
+    if (command.quantity <= 0) {
+      return Err({ type: "InvalidQuantity" })
+    }
     return Ok([{ type: "ItemAdded", itemId: command.itemId, quantity: command.quantity }])
   }
 
 const checkoutHandler: CommandHandler<CartState, {}, CartEvent, CartError> =
   ({ state }) => {
-    if (state.checkedOut) return Err({ type: "AlreadyCheckedOut" })
+    if (state.checkedOut) {
+      return Err({ type: "AlreadyCheckedOut" })
+    }
     return Ok([{ type: "CheckedOut" }])
   }
 ```
@@ -291,17 +295,21 @@ const issuePrescriptionHandler: CommandHandler<
   PatientEvent,
   PatientError
 > = ({ state, command }) => {
-  if (state.prescriptions.some(p => p.prescriptionId === command.prescriptionId))
+  if (state.prescriptions.some(p => p.prescriptionId === command.prescriptionId)) {
     return Err({ type: "DuplicatePrescriptionId" })
+  }
 
   const allergy = state.allergies.find(a =>
     command.drug.toLowerCase().includes(a.allergen.toLowerCase())
   )
-  if (allergy)
-    return Err({ type: "AllergyConflict", drug: command.drug, allergen: allergy.allergen })
 
-  if (command.endDate <= command.startDate)
+  if (allergy){
+    return Err({ type: "AllergyConflict", drug: command.drug, allergen: allergy.allergen })
+  }
+
+  if (command.endDate <= command.startDate)  {
     return Err({ type: "InvalidPrescriptionDates" })
+  }
 
   return Ok([{ type: "PrescriptionIssued", patientId: state.patientId, ...command }])
 }
@@ -495,8 +503,12 @@ type CartError = "ALREADY_CHECKED_OUT" | "INVALID_QUANTITY" | "ITEM_NOT_IN_CART"
 
 const addItemHandler: CommandHandler<CartState, { itemId: string; quantity: number }, CartEvent, CartError> =
   ({ state, command }) => {
-    if (state.checkedOut) return Err("ALREADY_CHECKED_OUT")
-    if (command.quantity <= 0) return Err("INVALID_QUANTITY")
+    if (state.checkedOut) {
+      return Err("ALREADY_CHECKED_OUT")
+    }
+    if (command.quantity <= 0) {
+      return Err("INVALID_QUANTITY")
+    }
     return Ok([{ type: "ItemAdded", itemId: command.itemId, quantity: command.quantity }])
   }
 
