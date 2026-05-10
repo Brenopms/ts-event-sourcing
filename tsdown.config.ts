@@ -1,5 +1,5 @@
 // tsup.config.ts
-import { defineConfig } from "tsup";
+import { defineConfig } from "tsdown";
 
 export default defineConfig({
 	// Entry file(s)
@@ -17,8 +17,7 @@ export default defineConfig({
 	// Target ES2018 for good balance
 	target: "es2018",
 
-	// Bundle dependencies (adjust based on your needs)
-	noExternal: [], // Bundle all dependencies
+	// Bundle dependencies (adjust based on your needs), // Bundle all dependencies
 	// or
 	// external: ['some-package'], // Mark specific packages as external
 
@@ -33,4 +32,7 @@ export default defineConfig({
 
 	// Optional: Tree-shaking
 	treeshake: true,
+  deps: {
+    alwaysBundle: [],
+  },
 });
