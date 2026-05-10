@@ -24,15 +24,12 @@ export default defineConfig({
 	// Enable sourcemaps
 	sourcemap: true,
 
-	// Optional: Splitting for ESM
-	splitting: false,
-
 	// Optional: Minification
 	minify: false,
 
 	// Optional: Tree-shaking
 	treeshake: true,
-  deps: {
-    alwaysBundle: [],
-  },
+	deps: {
+		alwaysBundle: [],
+	},
 });
