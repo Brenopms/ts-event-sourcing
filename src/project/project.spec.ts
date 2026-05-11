@@ -147,7 +147,6 @@ describe("project", () => {
 
 		if (result.ok) throw new Error("Expected error result");
 
-		
 		expect(result.ok).toBe(false);
 		expect(result.error.type).toBe("FoldError");
 	});
