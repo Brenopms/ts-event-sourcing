@@ -5,7 +5,7 @@ on:
     workflows: ["test"]
     branches: [main]
     types:
-      - successful
+      - completed
 
 permissions:
   id-token: write # Required for OIDC
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   publish:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} && github.ref == 'refs/heads/main'
+    if: github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
