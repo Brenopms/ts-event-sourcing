@@ -1,5 +1,9 @@
 # Typescript Event Sourcing Core
 
+[![npm version](https://img.shields.io/npm/v/@ts-event-sourcing/core)](https://www.npmjs.com/package/@ts-event-sourcing/core)
+[![bundle size](https://img.shields.io/bundlephobia/min/%40ts-event-sourcing.%2Fcore)](https://bundlephobia.com/package/ts-rules-composer)
+[![license](https://img.shields.io/npm/l/@ts-event-sourcing/core)](LICENSE)
+
 A minimal, opinionated, strongly typed event-sourcing library for TypeScript.
 
 This library provides a pure functional kernel for building event-sourced aggregates — exhaustive event matching, an explicit aggregate lifecycle, a `Result`-based error model, and zero infrastructure coupling. It is not a framework; it is a foundational primitive upon which higher-level systems (CQRS, projections, messaging, sagas) can be built.
