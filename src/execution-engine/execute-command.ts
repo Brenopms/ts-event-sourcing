@@ -1,6 +1,17 @@
-import { type AggregateDefinition, rebuildAggregate } from "../aggregate";
+import {
+	type AggregateDefinition,
+	type AggregateLoader,
+	rebuildAggregate,
+} from "../aggregate";
 import type { CommandHandler } from "../command";
-import { type AnyEvent, type CoreError, Err, Ok, type Result } from "../core";
+import {
+	type AnyEvent,
+	type CoreError,
+	Err,
+	fold,
+	Ok,
+	type Result,
+} from "../core";
 import type { EventStore } from "../event-store";
 
 /**
@@ -8,11 +19,11 @@ import type { EventStore } from "../event-store";
  *
  * This function implements the canonical **event-sourcing command flow**:
  *
- * 1. Load the event stream from the store
- * 2. Rebuild the aggregate state by folding past events
- * 3. Execute the command handler to decide new events
- * 4. Append the decided events with optimistic concurrency control
- * 5. Rebuild the aggregate again from the authoritative event list
+ * 1. Load aggregate state (either via the store + full replay, or via a
+ *    custom `loader` such as a snapshot-aware loader)
+ * 2. Execute the command handler to decide new events
+ * 3. Append the decided events with optimistic concurrency control
+ * 4. Incrementally fold new events into the loaded state
  *
  * ### Guarantees
  * - The returned `state` is always derived from persisted events
@@ -23,29 +34,33 @@ import type { EventStore } from "../event-store";
  * - `StreamNotFound` if the stream does not exist
  * - `StoreError` if the event store fails to load or append
  * - Any domain error returned by the command handler
+ * - Any error produced by the `loader` (when provided)
  *
  * @typeParam State   Aggregate state type
  * @typeParam Event   Event union type
  * @typeParam Command Command input type
  * @typeParam Error   Domain error type produced by the handler
+ * @typeParam LoaderError Error type produced by the optional loader
  *
- * @param params.store Event store used to load and append events
+ * @param params.store Event store used to append events (and load, if no loader)
  * @param params.aggregate Aggregate definition (initial state + reducer)
  * @param params.streamId Stream identifier
  * @param params.command Command to execute
  * @param params.idempotencyKey Key used to guarantee append idempotency
  * @param params.handler Pure command handler (decision function)
+ * @param params.loader Optional aggregate loader (e.g. snapshot-aware loader)
  *
  * @returns A Result containing:
- * - `state`: the updated aggregate state
- * - `events`: events produced by the command
- * - `lastVersion`: the new stream version
+ *  - `state`: the updated aggregate state
+ *  - `events`: events produced by the command
+ *  - `lastVersion`: the new stream version
  */
 export async function executeCommand<
 	State,
 	Event extends AnyEvent,
 	Command,
 	Error,
+	LoaderError = never,
 >(params: {
 	store: EventStore<Event>;
 	aggregate: AggregateDefinition<State, Event>;
@@ -53,6 +68,7 @@ export async function executeCommand<
 	command: Command;
 	idempotencyKey: string;
 	handler: CommandHandler<State, Command, Event, Error>;
+	loader?: AggregateLoader<State, Event, LoaderError>;
 }): Promise<
 	Result<
 		{
@@ -60,38 +76,32 @@ export async function executeCommand<
 			events: readonly Event[];
 			lastVersion: number;
 		},
-		CoreError | Error
+		CoreError | Error | LoaderError
 	>
 > {
-	// 1. Load stream
-	const loaded = await params.store.load({
-		streamId: params.streamId,
-	});
+	const {
+		store,
+		aggregate,
+		streamId,
+		command,
+		idempotencyKey,
+		handler,
+		loader,
+	} = params;
 
-	if (!loaded.ok) {
-		return loaded;
+	// 1. Load aggregate (loader or default full replay)
+	const loadResult = loader
+		? await loader({ store, aggregate, streamId })
+		: await loadFromStore(store, aggregate, streamId);
+
+	if (!loadResult.ok) {
+		return loadResult;
 	}
 
-	if (loaded.value.type !== "loaded") {
-		return Err({ type: "StreamNotFound" });
-	}
+	const { state, lastVersion } = loadResult.value;
 
-	// 2. Rebuild state
-	let state: State;
-	try {
-		state = rebuildAggregate({
-			aggregate: params.aggregate,
-			stream: loaded.value,
-		});
-	} catch (e) {
-		return Err({ type: "ReducerError", cause: e });
-	}
-
-	// 3. Decide
-	const decision = params.handler({
-		state,
-		command: params.command,
-	});
+	// 2. Decide
+	const decision = handler({ state, command });
 
 	if (!decision.ok) {
 		return { ok: false, error: decision.error };
@@ -99,11 +109,11 @@ export async function executeCommand<
 
 	const events = decision.value;
 
-	// 4. Append
-	const appendResult = await params.store.append({
-		streamId: params.streamId,
-		expectedVersion: loaded.value.lastVersion,
-		idempotencyKey: params.idempotencyKey,
+	// 3. Append
+	const appendResult = await store.append({
+		streamId,
+		expectedVersion: lastVersion,
+		idempotencyKey,
 		events,
 	});
 
@@ -111,18 +121,11 @@ export async function executeCommand<
 		return appendResult;
 	}
 
-	// 5. Rebuild again (authoritative)
+	// 4. authoritative rebuild from events, including the appended ones
 	let nextState: State;
 
 	try {
-		nextState = rebuildAggregate({
-			aggregate: params.aggregate,
-			stream: {
-				...loaded.value,
-				events: [...loaded.value.events, ...events],
-				lastVersion: appendResult.value.lastVersion,
-			},
-		});
+		nextState = fold(state, aggregate.reduce, events);
 	} catch (e) {
 		return Err({ type: "ReducerError", cause: e });
 	}
@@ -132,4 +135,32 @@ export async function executeCommand<
 		events,
 		lastVersion: appendResult.value.lastVersion,
 	});
+}
+
+async function loadFromStore<State, Event extends AnyEvent>(
+	store: EventStore<Event>,
+	aggregate: AggregateDefinition<State, Event>,
+	streamId: string,
+): Promise<Result<{ state: State; lastVersion: number }, CoreError>> {
+	const loaded = await store.load({ streamId });
+
+	if (!loaded.ok) {
+		return loaded;
+	}
+
+	if (loaded.value.type !== "loaded") {
+		return Err({ type: "StreamNotFound" });
+	}
+
+	let state: State;
+	try {
+		state = rebuildAggregate({
+			aggregate,
+			stream: loaded.value,
+		});
+	} catch (e) {
+		return Err({ type: "ReducerError", cause: e });
+	}
+
+	return Ok({ state, lastVersion: loaded.value.lastVersion });
 }

@@ -376,7 +376,7 @@ A critical design choice of this library is that **opening a stream and emitting
 
 - **`createAggregate`** — opens a new, empty stream. Fails with `AggregateAlreadyExists` if the stream already exists. Does not run any domain logic.
 - **First command** — your first domain event (e.g. `OrderPlaced`, `PatientRegistered`) is emitted by a command handler, exactly like any other command. This keeps creation logic in the same typed, testable pipeline.
-- **`executeCommand`** (via `defineCommand`) — applies subsequent commands to the existing stream. Fails with `StreamNotFound` if the stream doesn't exist yet.
+- **`executeCommand`** (via `defineCommand`) — applies subsequent commands to the existing stream. Fails with `StreamNotFound` if the stream doesn't exist yet. Accepts an optional `loader` parameter to delegate aggregate loading to a custom strategy (e.g., snapshot-accelerated loading via `@ts-event-sourcing/snapshots`).
 - **`loadAggregate`** — loads and rebuilds state from an existing stream. Fails with `AggregateNotFound` if the stream is empty (i.e. `createAggregate` was called but no commands have run yet).
 
 ```ts
@@ -743,6 +743,7 @@ The library ships with `InMemoryEventStore<E>` for testing and local development
 |---|---|
 | `AggregateDefinition<S, E>` | Contract: `initialState` + `reduce` |
 | `Reducer<S, E>` | Type alias for `(state: S, event: E) => S` |
+| `AggregateLoader<S, E, Err>` | Type for a pluggable aggregate loading strategy. Used by `executeCommand`'s optional `loader` parameter to support snapshot-accelerated loading and other custom load strategies. Default `Err = never`. |
 | `createAggregate(params)` | Create a new event stream; fails if already exists |
 | `loadAggregate(params)` | Load and rebuild state from an existing stream |
 | `rebuildAggregate(params)` | Low-level: fold a `LoadedStream` into state synchronously |
@@ -752,7 +753,7 @@ The library ships with `InMemoryEventStore<E>` for testing and local development
 | Export | Description |
 |---|---|
 | `CommandHandler<S, C, E, Err>` | Type for a pure command handler function. Use `never` as the `Err` parameter for handlers that structurally cannot return a domain error — e.g. `CommandHandler<State, PlaceOrderCommand, OrderEvent, never>`. The handler can then only call `Ok(...)` and the compiler enforces this. |
-| `executeCommand(params)` | Orchestrates load → handler → append → rebuild |
+| `executeCommand(params)` | Orchestrates load → handler → append → rebuild. Accepts optional `loader` for custom loading (e.g. snapshots). |
 | `defineCommand(params)` | Ergonomic wrapper binding aggregate + handler |
 
 ### Projections
@@ -1055,7 +1056,7 @@ Either way: treat renaming or removing a field as a **breaking change** that req
 
 Replaying a stream with 10,000 events is fast for simple reducers (target: <50ms), but unbounded streams will eventually become a performance concern. Plan for this before you need it:
 
-- **Snapshotting** — periodically checkpoint the computed state so replay starts from the snapshot rather than event zero. This is out of scope for the core but is a supported extension pattern; all public types are designed to accommodate it.
+- **Snapshotting** — periodically checkpoint the computed state so replay starts from the snapshot rather than event zero. Use the official [`@ts-event-sourcing/snapshots`](https://www.npmjs.com/package/@ts-event-sourcing/snapshots) extension to add snapshot support with minimal changes to your existing code.
 - **Aggregate boundaries** — if a single stream grows very large, it may be a sign the aggregate is doing too much. Consider whether it should be split into finer-grained streams.
 - As a rule of thumb: if a stream routinely exceeds 10,000 events, implement snapshotting.
 
@@ -1419,7 +1420,7 @@ The following are intentionally not part of this library:
 - Automatic retry or backoff
 - Dependency injection or decorators
 - Runtime schema validation
-- Snapshotting (recommended as an external extension for streams > 10k events)
+- Snapshotting — available as a separate extension: [`@ts-event-sourcing/snapshots`](https://www.npmjs.com/package/@ts-event-sourcing/snapshots)
 
 These concerns belong in adapters and extensions built on top of this core. All public types are designed to be used by such extensions without modifying the library itself.
 
