@@ -547,27 +547,28 @@ Executes a command against an **existing** aggregate stream. This is the canonic
 command execution entry point.
 
 ```ts
-export async function executeCommand<State, Event extends AnyEvent, Command, Error>(params: {
+export async function executeCommand<State, Event extends AnyEvent, Command, Error, LoaderError = never>(params: {
   store: EventStore<Event>
   aggregate: AggregateDefinition<State, Event>
   streamId: string
   command: Command
   idempotencyKey: string
   handler: CommandHandler<State, Command, Event, Error>
+  loader?: AggregateLoader<State, Event, LoaderError>
 }): Promise<Result<{
   state: State
   events: readonly Event[]
   lastVersion: number
-}, Error | CoreError>>
+}, Error | CoreError | LoaderError>>
 ```
 
 Execution steps:
 
-1. Load the event stream from the store
-2. Rebuild current aggregate state by folding past events
+1. Load the event stream from the store **(or delegate to the optional `loader`, e.g. a snapshot-aware loader)**
+2. Rebuild current aggregate state by folding past events **(or use the state returned by the loader)**
 3. Call the command handler with the current state and command
 4. If the handler returns events, append them with optimistic concurrency control
-5. Rebuild the post-append state from the authoritative event list
+5. Rebuild the post-append state from the authoritative event list **(if a loader was used, incrementally fold new events into the loaded state instead of replaying all events)**
 6. Return the new state, emitted events, and last version
 
 All steps are wrapped in `Result`. No step executes if a prior step fails.
@@ -687,15 +688,16 @@ It does **not** provide durability, cross-process safety, or high concurrency gu
 
 ## 15. Snapshots
 
-* Out of core
-* Implemented as an extension
-* Store adapters may combine snapshot + events internally
+* Out of core — available as [`@ts-event-sourcing/snapshots`](https://www.npmjs.com/package/@ts-event-sourcing/snapshots)
+* Implemented as an extension with its own `SnapshotStore` interface
+* Plugs into `executeCommand` via the optional `loader` parameter using `AggregateLoader`
 
 Reasoning:
 
 * Keeps the kernel minimal
 * Avoids lifecycle complexity
 * Preserves determinism
+* The `loader` injection point enables snapshotting without core changes
 
 ---
 
@@ -704,7 +706,7 @@ Reasoning:
 The core is designed to support the following as external extensions:
 
 * PostgreSQL / EventStoreDB / Kafka-backed store adapters
-* Snapshot adapters
+* Snapshot adapters (official extension: `@ts-event-sourcing/snapshots`)
 * Projection runners and materializers
 * Testing utilities
 
@@ -732,6 +734,7 @@ The full public surface of the library:
 **Aggregate**
 
 * `AggregateDefinition`, `Reducer`
+* `AggregateLoader`
 * `createAggregate`
 * `loadAggregate`
 * `rebuildAggregate` *(low-level)*

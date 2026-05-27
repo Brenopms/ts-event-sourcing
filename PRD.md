@@ -41,8 +41,9 @@ Developers need a **reliable, type‑safe foundation** that separates pure domai
 
 ### 4.3 Command Execution
 
-- **`executeCommand`** – orchestrates load, rebuild, handler, append, and final rebuild. Returns new state, emitted events, and last version.
+- **`executeCommand`** – orchestrates load, rebuild, handler, append, and final rebuild. Returns new state, emitted events, and last version. Accepts an optional `loader: AggregateLoader<S, E, LoaderError>` to delegate aggregate loading to a custom strategy (e.g., snapshot-accelerated loading).
 - **`defineCommand`** – ergonomic wrapper that binds an `AggregateDefinition` and `CommandHandler` together.
+- **`AggregateLoader<State, Event, LoaderError>`** – function type for pluggable aggregate loading strategies. Default `LoaderError = never`.
 
 ### 4.4 Event Matching
 
@@ -106,6 +107,7 @@ Developers need a **reliable, type‑safe foundation** that separates pure domai
 
 - `AggregateDefinition<State, Event>`
 - `Reducer<State, Event>`
+- `AggregateLoader<State, Event, LoaderError>`
 - `createAggregate`, `loadAggregate`, `rebuildAggregate`
 
 ### Command
@@ -214,6 +216,6 @@ const result = await executeCommand({
 ## 13. Future Possibilities (Not Committed)
 
 - Official PostgreSQL / EventStoreDB adapters (separate packages)
-- Snapshot extension (see separate PRD)
+- Snapshot extension — `@ts-event-sourcing/snapshots` (see snapshots/PRD.md)
 - Saga extension (see separate PRD)
 - Testing utilities for command handlers and aggregates
