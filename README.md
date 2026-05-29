@@ -19,7 +19,7 @@ npm install @ts-event-sourcing/core
 
 **New to event sourcing?** Start at [Why Event Sourcing?](#why-event-sourcing) and read through the [Core Concepts](#core-concepts) — the tutorial will make everything click before you write any code.
 
-**Want to see how the library works in practice? Check out the [examples](https://github.com/Brenopms/ts-event-sourcing/tree/main/examples) directory.**
+**Want to see how the library works in practice? Check out the [live demo](https://brenopms.github.io/ts-event-sourcing-visual-demo/) or the [examples](https://github.com/Brenopms/ts-event-sourcing/tree/main/examples) directory.**
 
 ---
 
