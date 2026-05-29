@@ -1056,7 +1056,7 @@ Either way: treat renaming or removing a field as a **breaking change** that req
 
 Replaying a stream with 10,000 events is fast for simple reducers (target: <50ms), but unbounded streams will eventually become a performance concern. Plan for this before you need it:
 
-- **Snapshotting** — periodically checkpoint the computed state so replay starts from the snapshot rather than event zero. Use the official [`@ts-event-sourcing/snapshots`](https://www.npmjs.com/package/@ts-event-sourcing/snapshots) extension to add snapshot support with minimal changes to your existing code.
+- **Snapshotting** — periodically checkpoint the computed state so replay starts from the snapshot rather than event zero. Use the official [`@ts-event-sourcing/snapshots`](https://github.com/Brenopms/ts-event-sourcing-snapshots) extension to add snapshot support with minimal changes to your existing code.
 - **Aggregate boundaries** — if a single stream grows very large, it may be a sign the aggregate is doing too much. Consider whether it should be split into finer-grained streams.
 - As a rule of thumb: if a stream routinely exceeds 10,000 events, implement snapshotting.
 
@@ -1420,7 +1420,7 @@ The following are intentionally not part of this library:
 - Automatic retry or backoff
 - Dependency injection or decorators
 - Runtime schema validation
-- Snapshotting — available as a separate extension: [`@ts-event-sourcing/snapshots`](https://www.npmjs.com/package/@ts-event-sourcing/snapshots)
+- Snapshotting — available as a separate extension: [`@ts-event-sourcing/snapshots`](https://github.com/Brenopms/ts-event-sourcing-snapshots)
 
 These concerns belong in adapters and extensions built on top of this core. All public types are designed to be used by such extensions without modifying the library itself.
 
