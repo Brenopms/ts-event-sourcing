@@ -244,6 +244,7 @@ export type CoreError =
 	| { type: "FoldError"; cause: unknown }
   | { type: "ConcurrencyConflict"; expected: number; actual: number }
   | { type: "IdempotencyViolation" }
+  | { type: "InvalidVersionRange"; fromVersion: number; toVersion: number }
 ```
 
 Reasoning:
@@ -435,7 +436,8 @@ Versioning:
 export interface EventStore<E extends AnyEvent> {
   load(params: {
     streamId: string
-    toVersion?: number  // optional upper bound for partial rebuilds
+    fromVersion?: number  // optional exclusive lower bound (returns events with version > fromVersion)
+    toVersion?: number    // optional inclusive upper bound (returns events with version <= toVersion)
   }): Promise<Result<StreamState<E>, CoreError>>
 
   append(params: {

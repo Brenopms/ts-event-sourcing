@@ -69,6 +69,11 @@ export type StreamState<E> = EmptyStream | LoadedStream<E>;
  * - Returns `empty` if the stream does not exist
  * - Returns `loaded` if the stream exists
  * - Events must be returned in order
+ * - `fromVersion` is exclusive: only events with version > fromVersion are returned
+ * - `toVersion` is inclusive: only events with version <= toVersion are returned
+ * - `lastVersion` on a loaded stream reflects the stream's actual last version,
+ *   regardless of fromVersion / toVersion filtering
+ * - Returns `InvalidVersionRange` if fromVersion > toVersion or if either is negative
  *
  * ### Append semantics
  * - `expectedVersion` MUST match the stream's current version
@@ -80,6 +85,7 @@ export type StreamState<E> = EmptyStream | LoadedStream<E>;
 export interface EventStore<E extends AnyEvent> {
 	load(params: {
 		streamId: string;
+		fromVersion?: number;
 		toVersion?: number;
 	}): Promise<Result<StreamState<E>, CoreError>>;
 

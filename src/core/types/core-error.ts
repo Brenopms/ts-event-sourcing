@@ -6,4 +6,9 @@ export type CoreError =
 	| { type: "ReducerError"; cause: unknown }
 	| { type: "FoldError"; cause: unknown }
 	| { type: "AggregateAlreadyExists" }
-	| { type: "AggregateNotFound" };
+	| { type: "AggregateNotFound" }
+	| {
+			type: "InvalidVersionRange";
+			fromVersion: number;
+			toVersion: number;
+	  };
