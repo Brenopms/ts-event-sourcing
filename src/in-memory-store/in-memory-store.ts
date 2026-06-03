@@ -16,6 +16,7 @@ import type { EventStore, PersistedEvent, StreamState } from "../event-store";
  * - Optimistic locking via version
  * - Idempotency enforcement
  * - Deterministic event ordering
+ * - Range-based loading via fromVersion (exclusive) and toVersion (inclusive)
  *
  * It does NOT provide:
  * - Durability
@@ -32,32 +33,79 @@ export class InMemoryEventStore<E extends AnyEvent> implements EventStore<E> {
 		}
 	>();
 
+	private validateVersionRange(
+		fromVersion?: number,
+		toVersion?: number,
+	): Result<void, CoreError> {
+		if (fromVersion !== undefined && fromVersion < 0) {
+			return Err({
+				type: "InvalidVersionRange",
+				fromVersion,
+				toVersion: toVersion ?? 0,
+			});
+		}
+
+		if (toVersion !== undefined && toVersion < 0) {
+			return Err({
+				type: "InvalidVersionRange",
+				fromVersion: fromVersion ?? 0,
+				toVersion,
+			});
+		}
+
+		if (
+			fromVersion !== undefined &&
+			toVersion !== undefined &&
+			fromVersion > toVersion
+		) {
+			return Err({
+				type: "InvalidVersionRange",
+				fromVersion,
+				toVersion,
+			});
+		}
+
+		return Ok(undefined);
+	}
+
 	async load(params: {
 		streamId: string;
+		fromVersion?: number;
 		toVersion?: number;
 	}): Promise<Result<StreamState<E>, CoreError>> {
-		const { streamId, toVersion } = params;
+		const { streamId, fromVersion, toVersion } = params;
+
+		const versionValidationResult = this.validateVersionRange(
+			fromVersion,
+			toVersion,
+		);
+
+		if (!versionValidationResult.ok) {
+			return versionValidationResult;
+		}
+
 		const stream = this.streams.get(streamId);
 
 		if (!stream) {
 			return Ok({ type: "empty", lastVersion: 0, events: [] });
 		}
 
-		const filteredEvents =
-			toVersion === undefined
-				? [...stream.events]
-				: stream.events
-						.filter((e) => e.version <= toVersion)
-						.map((e) => ({ ...e }));
+		let filteredEvents = [...stream.events];
+
+		filteredEvents = filteredEvents.filter(
+			(e) =>
+				(fromVersion === undefined || e.version > fromVersion) &&
+				(toVersion === undefined || e.version <= toVersion),
+		);
 
 		if (filteredEvents.length === 0) {
-			return Ok({ type: "loaded", events: [], lastVersion: 0 });
+			return Ok({ type: "loaded", events: [], lastVersion: stream.version });
 		}
 
 		return Ok({
 			type: "loaded",
 			events: filteredEvents,
-			lastVersion: filteredEvents[filteredEvents.length - 1].version,
+			lastVersion: stream.version,
 		});
 	}
 
